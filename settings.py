@@ -1,0 +1,11 @@
+# Screen dimensions
+SCREEN_WIDTH = 1920
+SCREEN_HEIGHT = 1000
+
+# Colors
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+
+STICKMAN_POS_X = 1000
+STICKMAN_POS_Y = 400
+

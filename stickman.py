@@ -31,11 +31,14 @@ class Stickman:
         pygame.draw.circle(screen, self.skin_color, (head_x, head_y), self.head_radius)
 
         # Hair
-        num_spikes = 12
+        num_spikes = 100
         spike_length = self.head_radius // 1.5  # relative to head size
 
         for i in range(num_spikes):
-            angle = math.pi * (i / (num_spikes - 1))  # from 0 to pi (top arc)
+            arc_span = math.pi * 0.8  # total arc length in radians (~126°)
+            start_angle = math.pi/2 - arc_span/2  # center the arc around top (π/2)
+
+            angle = start_angle + arc_span * (i / (num_spikes - 1))
             
             # Start point: on head edge
             x0 = head_x + math.cos(angle) * self.head_radius
@@ -57,6 +60,7 @@ class Stickman:
                          (head_x, head_y),
                          (head_x, head_y + self.nose_size), 2)
 
+        # Mouth
         start_x = head_x - self.mouth_size // 2
         end_x = head_x + self.mouth_size // 2
         mid_x = head_x
@@ -74,11 +78,25 @@ class Stickman:
         pygame.draw.line(screen, self.skin_color, torso_top, torso_bottom, 3)
 
         # Arms
-        arm_y = torso_top[1] + self.torso_length // 4
+        # Arms (angled and starting near the head like legs)
+        arm_start_y = head_y + self.head_radius + 5  # just below the head
+
+        # Left Arm
+        left_hand_x = head_x - self.arm_length // 2
+        left_hand_y = arm_start_y + self.arm_length
+
+        # Right Arm
+        right_hand_x = head_x + self.arm_length // 2
+        right_hand_y = arm_start_y + self.arm_length
+
         pygame.draw.line(screen, self.skin_color,
-                         (head_x - self.arm_length, arm_y),
-                         (head_x + self.arm_length, arm_y),
-                         self.arm_thickness)
+                        (head_x, arm_start_y),
+                        (left_hand_x, left_hand_y), self.arm_thickness)
+
+        pygame.draw.line(screen, self.skin_color,
+                        (head_x, arm_start_y),
+                        (right_hand_x, right_hand_y), self.arm_thickness)
+
 
         # Legs
         pygame.draw.line(screen, self.skin_color,

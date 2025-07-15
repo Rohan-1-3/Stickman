@@ -25,7 +25,7 @@ class Slider:
         # Label
         font = pygame.font.SysFont("Arial", 16)
         label = font.render(f"Size: {self.value:.1f}x", True, (0, 0, 0))
-        screen.blit(label, (self.x, self.y + 15))
+        screen.blit(label, (self.x, self.y + 10))
 
     def update(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:

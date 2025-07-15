@@ -8,6 +8,13 @@ class Stickman:
         self.config = config
         self._parse_config()
 
+        # Movement and simulation state
+        self.velocity_x = 0
+        self.velocity_y = 0
+        self.speed = 5
+        self.is_simulating = False
+        self.dead = False
+
     def _parse_config(self):
         self.head_radius = int(self.config.get("head_size", 25))
         self.eye_size = int(self.config.get("eye_size", 3))
@@ -21,90 +28,78 @@ class Stickman:
         self.hair_color = self.config.get("hair_color", (0, 0, 0))
         self.skin_color = self.config.get("skin_color", (255, 224, 189))
 
+    def update(self, screen_width, screen_height):
+        if not self.is_simulating or self.dead:
+            return
 
+        self.x += self.velocity_x
+        self.y += self.velocity_y
+
+        half_width = self.head_radius + self.arm_length // 2
+        total_height = self.head_radius + self.torso_length + self.leg_length
+
+        self.x = max(half_width, min(screen_width - half_width, self.x))
+        self.y = max(total_height, min(screen_height - total_height, self.y))
 
     def draw(self, screen):
-        # Head center
-        head_x, head_y = self.x, self.y
+        head_x, head_y = int(self.x), int(self.y)
 
-        # Draw head
+        # --- Head ---
         pygame.draw.circle(screen, self.skin_color, (head_x, head_y), self.head_radius)
 
-        # Hair
+        # --- Hair ---
         num_spikes = 100
-        spike_length = self.head_radius // 1.5  # relative to head size
+        spike_length = self.head_radius // 1.5
+        arc_span = math.pi * 0.8
+        start_angle = math.pi / 2 - arc_span / 2
 
         for i in range(num_spikes):
-            arc_span = math.pi * 0.8  # total arc length in radians (~126°)
-            start_angle = math.pi/2 - arc_span/2  # center the arc around top (π/2)
-
             angle = start_angle + arc_span * (i / (num_spikes - 1))
-            
-            # Start point: on head edge
             x0 = head_x + math.cos(angle) * self.head_radius
             y0 = head_y - math.sin(angle) * self.head_radius
-
-            # End point: extend outward
             x1 = head_x + math.cos(angle) * (self.head_radius + spike_length)
             y1 = head_y - math.sin(angle) * (self.head_radius + spike_length)
-
             pygame.draw.line(screen, self.hair_color, (x0, y0), (x1, y1), 2)
 
-        # Eyes
-        eye_offset = self.head_radius // 2
-        pygame.draw.circle(screen, (0, 0, 0), (head_x - eye_offset, head_y - eye_offset), self.eye_size)
-        pygame.draw.circle(screen, (0, 0, 0), (head_x + eye_offset, head_y - eye_offset), self.eye_size)
+        # --- Eyes ---
+        eye_gap = self.head_radius // 2
+        eye_y = head_y - self.head_radius // 3
+        eye_radius = max(2, self.eye_size)
+        pygame.draw.circle(screen, (0, 0, 0), (head_x - eye_gap, eye_y), eye_radius)
+        pygame.draw.circle(screen, (0, 0, 0), (head_x + eye_gap, eye_y), eye_radius)
 
-        # Nose (line down)
-        pygame.draw.line(screen, (120, 90, 90),
-                         (head_x, head_y),
-                         (head_x, head_y + self.nose_size), 2)
+        # --- Nose (angled) ---
+        nose_top = (head_x, eye_y + eye_radius + 4)
+        nose_bottom = (head_x + self.nose_size // 2, nose_top[1] + self.nose_size)
+        pygame.draw.line(screen, (120, 90, 90), nose_top, nose_bottom, 2)
 
-        # Mouth
+        # --- Mouth ---
+        mouth_top_y = head_y + self.head_radius // 2
+        mid_y = mouth_top_y + int(self.mouth_curve * 10)
         start_x = head_x - self.mouth_size // 2
         end_x = head_x + self.mouth_size // 2
-        mid_x = head_x
-        mid_y = head_y + self.head_radius // 2 + int(self.mouth_curve * 10)  # curve depth
-
         pygame.draw.lines(screen, (255, 0, 0), False, [
-            (start_x, head_y + self.head_radius // 2),
-            (mid_x, mid_y),
-            (end_x, head_y + self.head_radius // 2)
+            (start_x, mouth_top_y),
+            (head_x, mid_y),
+            (end_x, mouth_top_y)
         ], 2)
 
-        # Torso (line down from head)
+        # --- Torso ---
         torso_top = (head_x, head_y + self.head_radius)
         torso_bottom = (head_x, torso_top[1] + self.torso_length)
         pygame.draw.line(screen, self.skin_color, torso_top, torso_bottom, 3)
 
-        # Arms
-        # Arms (angled and starting near the head like legs)
-        arm_start_y = head_y + self.head_radius + 5  # just below the head
+        # --- Arms ---
+        arm_start_y = head_y + self.head_radius + 5
+        left_hand = (head_x - self.arm_length // 2, arm_start_y + self.arm_length)
+        right_hand = (head_x + self.arm_length // 2, arm_start_y + self.arm_length)
+        pygame.draw.line(screen, self.skin_color, (head_x, arm_start_y), left_hand, self.arm_thickness)
+        pygame.draw.line(screen, self.skin_color, (head_x, arm_start_y), right_hand, self.arm_thickness)
 
-        # Left Arm
-        left_hand_x = head_x - self.arm_length // 2
-        left_hand_y = arm_start_y + self.arm_length
-
-        # Right Arm
-        right_hand_x = head_x + self.arm_length // 2
-        right_hand_y = arm_start_y + self.arm_length
-
-        pygame.draw.line(screen, self.skin_color,
-                        (head_x, arm_start_y),
-                        (left_hand_x, left_hand_y), self.arm_thickness)
-
-        pygame.draw.line(screen, self.skin_color,
-                        (head_x, arm_start_y),
-                        (right_hand_x, right_hand_y), self.arm_thickness)
-
-
-        # Legs
+        # --- Legs ---
         pygame.draw.line(screen, self.skin_color,
                          torso_bottom,
-                         (head_x - self.leg_length // 2, torso_bottom[1] + self.leg_length),
-                         3)
-
+                         (head_x - self.leg_length // 2, torso_bottom[1] + self.leg_length), 3)
         pygame.draw.line(screen, self.skin_color,
                          torso_bottom,
-                         (head_x + self.leg_length // 2, torso_bottom[1] + self.leg_length),
-                         3)
+                         (head_x + self.leg_length // 2, torso_bottom[1] + self.leg_length), 3)

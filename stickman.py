@@ -11,7 +11,7 @@ class Stickman:
         # Movement and simulation state
         self.velocity_x = 0
         self.velocity_y = 0
-        self.speed = 5
+        self.speed = 10
         self.is_simulating = False
         self.dead = False
 
@@ -35,17 +35,29 @@ class Stickman:
         self.x += self.velocity_x
         self.y += self.velocity_y
 
-        half_width = self.head_radius + self.arm_length // 2
-        total_height = self.head_radius + self.torso_length + self.leg_length
+        # Horizontal wrap
+        if self.x < -self.head_radius:
+            self.x = screen_width + self.head_radius
+        elif self.x > screen_width + self.head_radius:
+            self.x = -self.head_radius
 
-        self.x = max(half_width, min(screen_width - half_width, self.x))
-        self.y = max(total_height, min(screen_height - total_height, self.y))
+        # Vertical wrap (optional)
+        head_height = int(self.head_radius * 2.4)
+        bottom_buffer = head_height // 2 + self.torso_length + self.leg_length
+
+        if self.y < -bottom_buffer:
+            self.y = screen_height + bottom_buffer
+        elif self.y > screen_height + bottom_buffer:
+            self.y = -bottom_buffer
 
     def draw(self, screen):
         head_x, head_y = int(self.x), int(self.y)
 
-        # --- Head ---
-        pygame.draw.circle(screen, self.skin_color, (head_x, head_y), self.head_radius)
+        # --- Head (oval instead of circle) ---
+        head_width = self.head_radius * 1.5
+        head_height = int(self.head_radius * 1.7)
+        head_rect = pygame.Rect(head_x - head_width // 2, head_y - head_height // 2, head_width, head_height)
+        pygame.draw.ellipse(screen, self.skin_color, head_rect)
 
         # --- Hair ---
         num_spikes = 100
@@ -55,26 +67,33 @@ class Stickman:
 
         for i in range(num_spikes):
             angle = start_angle + arc_span * (i / (num_spikes - 1))
-            x0 = head_x + math.cos(angle) * self.head_radius
-            y0 = head_y - math.sin(angle) * self.head_radius
-            x1 = head_x + math.cos(angle) * (self.head_radius + spike_length)
-            y1 = head_y - math.sin(angle) * (self.head_radius + spike_length)
+            x0 = head_x + math.cos(angle) * (head_width // 2)
+            y0 = head_y - math.sin(angle) * (head_height // 2)
+            x1 = head_x + math.cos(angle) * ((head_width // 2) + spike_length)
+            y1 = head_y - math.sin(angle) * ((head_height // 2) + spike_length)
             pygame.draw.line(screen, self.hair_color, (x0, y0), (x1, y1), 2)
 
-        # --- Eyes ---
-        eye_gap = self.head_radius // 2
-        eye_y = head_y - self.head_radius // 3
-        eye_radius = max(2, self.eye_size)
-        pygame.draw.circle(screen, (0, 0, 0), (head_x - eye_gap, eye_y), eye_radius)
-        pygame.draw.circle(screen, (0, 0, 0), (head_x + eye_gap, eye_y), eye_radius)
+        # --- Eyes (white, pupil, highlight) ---
+        eye_gap = self.head_radius * 0.25
+        eye_y = head_y - head_height // 4
+        eye_white_radius = max(3, self.eye_size * 1.5)
+        pupil_radius = max(2, self.eye_size * .8)
+        highlight_radius = 2
 
-        # --- Nose (angled) ---
-        nose_top = (head_x, eye_y + eye_radius + 4)
+        for offset in [-eye_gap, eye_gap]:
+            eye_center = (int(head_x + offset), int(eye_y))
+            pygame.draw.circle(screen, (255, 255, 255), eye_center, eye_white_radius)   # white part
+            pygame.draw.circle(screen, (0, 0, 0), eye_center, pupil_radius)             # pupil
+            pygame.draw.circle(screen, (255, 255, 255), 
+                            (eye_center[0] - 2, eye_center[1] - 2), highlight_radius) # highlight
+
+        # --- Nose ---
+        nose_top = (head_x, int(eye_y + eye_white_radius + 4))
         nose_bottom = (head_x + self.nose_size // 2, nose_top[1] + self.nose_size)
         pygame.draw.line(screen, (120, 90, 90), nose_top, nose_bottom, 2)
 
         # --- Mouth ---
-        mouth_top_y = head_y + self.head_radius // 2
+        mouth_top_y = head_y + head_height // 4
         mid_y = mouth_top_y + int(self.mouth_curve * 10)
         start_x = head_x - self.mouth_size // 2
         end_x = head_x + self.mouth_size // 2
@@ -85,12 +104,12 @@ class Stickman:
         ], 2)
 
         # --- Torso ---
-        torso_top = (head_x, head_y + self.head_radius)
+        torso_top = (head_x, head_y + head_height // 2)
         torso_bottom = (head_x, torso_top[1] + self.torso_length)
         pygame.draw.line(screen, self.skin_color, torso_top, torso_bottom, 3)
 
         # --- Arms ---
-        arm_start_y = head_y + self.head_radius + 5
+        arm_start_y = torso_top[1] + 5
         left_hand = (head_x - self.arm_length // 2, arm_start_y + self.arm_length)
         right_hand = (head_x + self.arm_length // 2, arm_start_y + self.arm_length)
         pygame.draw.line(screen, self.skin_color, (head_x, arm_start_y), left_hand, self.arm_thickness)
@@ -98,8 +117,8 @@ class Stickman:
 
         # --- Legs ---
         pygame.draw.line(screen, self.skin_color,
-                         torso_bottom,
-                         (head_x - self.leg_length // 2, torso_bottom[1] + self.leg_length), 3)
+                        torso_bottom,
+                        (head_x - self.leg_length // 2, torso_bottom[1] + self.leg_length), 3)
         pygame.draw.line(screen, self.skin_color,
-                         torso_bottom,
-                         (head_x + self.leg_length // 2, torso_bottom[1] + self.leg_length), 3)
+                        torso_bottom,
+                        (head_x + self.leg_length // 2, torso_bottom[1] + self.leg_length), 3)

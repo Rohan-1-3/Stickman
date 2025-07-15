@@ -56,8 +56,8 @@ class Stickman:
         # --- Head (oval instead of circle) ---
         head_width = self.head_radius * 1.5
         head_height = int(self.head_radius * 1.7)
-        head_rect = pygame.Rect(head_x - head_width // 2, head_y - head_height // 2, head_width, head_height)
-        pygame.draw.ellipse(screen, self.skin_color, head_rect)
+        pygame.draw.ellipse(screen, self.skin_color, 
+                            (head_x - head_width // 2, head_y - head_height // 2, head_width, head_height))
 
         # --- Hair ---
         num_spikes = 100

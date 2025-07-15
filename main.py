@@ -24,7 +24,9 @@ while running:
     stickman = Stickman(x=STICKMAN_POS_X, y=STICKMAN_POS_Y, config=stickman_config)
 
     draw_room(screen)
-    pygame.draw.rect(screen, (230, 230, 230), (30, 30, 260, 430))  
+    slider_height = 50
+    num_sliders = len(sliders)
+    pygame.draw.rect(screen, (230, 230, 230), (30, 30, 260, num_sliders * slider_height + 30))
     for s in sliders:
         s.draw(screen)
     stickman.draw(screen)

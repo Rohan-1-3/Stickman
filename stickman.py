@@ -13,6 +13,7 @@ class Stickman:
         self.eye_size = int(self.config.get("eye_size", 3))
         self.nose_size = int(self.config.get("nose_size", 4))
         self.mouth_size = int(self.config.get("mouth_size", 12))
+        self.mouth_curve = self.config.get("mouth_curve", 0.0)
         self.arm_length = int(self.config.get("arm_length", 40))
         self.arm_thickness = int(self.config.get("arm_thickness", 2))
         self.leg_length = int(self.config.get("leg_length", 50))
@@ -56,10 +57,16 @@ class Stickman:
                          (head_x, head_y),
                          (head_x, head_y + self.nose_size), 2)
 
-        # Mouth (horizontal line)
-        pygame.draw.line(screen, (255, 0, 0),
-                         (head_x - self.mouth_size // 2, head_y + self.head_radius // 2),
-                         (head_x + self.mouth_size // 2, head_y + self.head_radius // 2), 2)
+        start_x = head_x - self.mouth_size // 2
+        end_x = head_x + self.mouth_size // 2
+        mid_x = head_x
+        mid_y = head_y + self.head_radius // 2 + int(self.mouth_curve * 10)  # curve depth
+
+        pygame.draw.lines(screen, (255, 0, 0), False, [
+            (start_x, head_y + self.head_radius // 2),
+            (mid_x, mid_y),
+            (end_x, head_y + self.head_radius // 2)
+        ], 2)
 
         # Torso (line down from head)
         torso_top = (head_x, head_y + self.head_radius)
